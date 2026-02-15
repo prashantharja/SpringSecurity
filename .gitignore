@@ -1,0 +1,30 @@
+### Eclipse Metadata ###
+.metadata/
+.project
+.classpath
+.settings/
+.loadpath
+.factorypath
+
+### Maven-Specific ###
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.utils_backup
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+### Java & Spring Boot ###
+*.class
+*.log
+*.jar
+*.war
+*.ear
+/bin/
+
+### Operating System ###
+.DS_Store
+Thumbs.db
