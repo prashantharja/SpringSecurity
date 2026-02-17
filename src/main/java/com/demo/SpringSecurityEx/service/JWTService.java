@@ -1,15 +1,13 @@
 package com.demo.SpringSecurityEx.service;
 
-import java.security.Key;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -20,42 +18,34 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JWTService {
 
-	public String generateToken(String username) {
+    // 1. INJECT SECRET FROM PROPERTIES (This ensures the key stays the same!)
+    @Value("${jwt.secret}")
+    private String secretKey;
 
-		HashMap<String, Object> claims = new HashMap<>();
+    public String generateToken(String username) {
+        Map<String, Object> claims = new HashMap<>();
+        return Jwts.builder()
+                .claims()
+                .add(claims)
+                .subject(username)
+                .issuedAt(new Date(System.currentTimeMillis()))
+                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 1)) // 1 Hour
+                .and()
+                .signWith(getKey())
+                .compact();
+    }
 
-		return Jwts.builder()
-				.claims()
-				.add(claims)
-				.subject(username)
-				.issuedAt(new Date(System.currentTimeMillis()))
-				.expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 1)) // Token valid for 1 hours
-				.and()
-				.signWith(getKey())
-				.compact();
+    // 2. MODIFIED getKey() - No longer generates a random key!
+    private SecretKey getKey() {
+        // If your secret in properties is plain text, use this:
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
+        
+        // OR: If you saved a Base64 string in properties, use this:
+        // byte[] keyBytes = Decoders.BASE64.decode(secretKey);
+        // return Keys.hmacShaKeyFor(keyBytes);
+    }
 
-	}
-
-	private SecretKey getKey() {
-
-		try {
-			KeyGenerator keygen = KeyGenerator.getInstance("HmacSHA256");
-			SecretKey sk = keygen.generateKey();
-			String secretKey = Base64.getEncoder().encodeToString(sk.getEncoded());
-
-			byte[] keyBytes = Base64.getDecoder().decode(secretKey);
-			return Keys.hmacShaKeyFor(keyBytes);
-
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
-		}
-		return null;
-
-	}
-	
-	
-	public String extractUserName(String token) {
-        // extract the username from jwt token
+    public String extractUserName(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
@@ -66,7 +56,7 @@ public class JWTService {
 
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getKey())
+                .verifyWith(getKey()) // Uses the SAME key as generateToken
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -84,7 +74,4 @@ public class JWTService {
     private Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
-    
-    
-
 }
